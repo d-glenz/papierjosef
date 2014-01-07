@@ -6,6 +6,9 @@ using Microsoft.Office.Tools.Ribbon;
 using Word = Microsoft.Office.Interop.Word;
 using System.ComponentModel;
 using Stats = DerPapierjosef.JosefStatistics.Stats;
+using System.Windows.Forms.DataVisualization.Charting;
+using System.Windows.Forms;
+
 
 
 namespace DerPapierjosef
@@ -14,6 +17,8 @@ namespace DerPapierjosef
     {
         JosefModel model;
         OpenNLP nlp;
+        BackgroundWorker c;
+        ProgressForm pf;
 
         private void JosefRibbon_Load(object sender, RibbonUIEventArgs e)
         {
@@ -24,9 +29,9 @@ namespace DerPapierjosef
         {
             Action exec = loadNLP,
                     exec2 = updateModel;
-            ProgressForm pf = new ProgressForm();
-            BackgroundWorker b = new BackgroundWorker(),
-                c = new BackgroundWorker();
+            pf = new ProgressForm();
+            BackgroundWorker b = new BackgroundWorker();
+            c = new BackgroundWorker();
             b.DoWork += (object s, DoWorkEventArgs ea) =>
             {
                 exec.Invoke();
@@ -35,9 +40,13 @@ namespace DerPapierjosef
             {
                 exec2.Invoke();
             };
+            c.WorkerReportsProgress = true;
+            c.ProgressChanged += c_ProgressChanged;
             b.RunWorkerCompleted += (object s, RunWorkerCompletedEventArgs ea) =>
             {
                 pf.label1.Text="Text wird ausgewertet... (Schritt 2 von 2)";
+                pf.progressBar1.MarqueeAnimationSpeed = 0;
+                pf.progressBar1.Style = ProgressBarStyle.Continuous;
                 c.RunWorkerAsync();
             };
             c.RunWorkerCompleted += (object s, RunWorkerCompletedEventArgs ea) =>
@@ -51,18 +60,23 @@ namespace DerPapierjosef
             
         }
 
+        void c_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            pf.progressBar1.Value = e.ProgressPercentage;
+        }
+
         private void showAuswertungen()
         {
+            JosefPane MyJosefPane = Globals.ThisAddIn.MyJosefPane;
             Globals.ThisAddIn.TaskPane.Visible = true;
             Globals.ThisAddIn.TaskPane.Width = 344;
             JosefStatistics stats = new JosefStatistics(model);
-            Auswertung aw = new Auswertung();
-            aw.Show();
-            setLabels(aw, stats);
-            fillHistogram(aw);
-            fillGridViews(aw);
-            Globals.ThisAddIn.MyJosefPane.setNodes(buildTreeNodes(stats));
-            Globals.ThisAddIn.MyJosefPane.treeView1.NodeMouseClick +=
+            setLabels(stats,MyJosefPane.label7,MyJosefPane.label8,MyJosefPane.label9,MyJosefPane.label10);
+            
+            fillHistogram(MyJosefPane.chart1);
+            fillGridViews(MyJosefPane.dataGridView2);
+            MyJosefPane.setNodes(buildTreeNodes(stats));
+            MyJosefPane.treeView1.NodeMouseClick +=
             (object sender, System.Windows.Forms.TreeNodeMouseClickEventArgs e) =>
             {
                 SentenceTreeNode stn = (SentenceTreeNode)e.Node;
@@ -70,54 +84,35 @@ namespace DerPapierjosef
             };
         }
                 
-        void fillHistogram(Auswertung aw)
+        void fillHistogram(Chart chart1)
         {
+
             int[] lengths = model.Sentences.Select(s => s.Words.Count).ToArray();
             for (int i = lengths.Min(); i < lengths.Max() + 1; i++)
             {
-                aw.chart1.Series[0].Points.AddXY(i, lengths.Where(l => l == i).Count());
+                chart1.Series[0].Points.AddXY(i, lengths.Where(l => l == i).Count());
             }
         }
 
-        void setLabels(Auswertung aw,JosefStatistics stats)
+        void setLabels(JosefStatistics stats, Label lbl7, Label lbl8, Label lbl9, Label lbl10)
         {
-            aw.label3.Text = "" + stats.BasicStatistics.wordCount;
-            aw.label12.Text = "" + stats.BasicStatistics.sentenceCount;
-            aw.label4.Text = "" + stats.BasicStatistics.hardSentenceCount;
-            aw.label13.Text = "" + stats.BasicStatistics.paragraphCount;
-            aw.label7.Text = "" + stats.BasicStatistics.dickesSteiwer + "%";
-            aw.label16.Text = "" + stats.BasicStatistics.floskelMean + "%";
-            aw.label8.Text = "" + stats.BasicStatistics.nominalMean + "%";
-            aw.label9.Text = "" + stats.BasicStatistics.uniqueWordCount;
-            aw.label28.Text = "" + stats.korrelatSaetze.Count;
-            aw.label29.Text = "" + stats.passivSaetze.Count;
-            aw.label30.Text = "" + stats.vergangenheitsSätze.Count;
-            aw.label31.Text = "" + stats.unpersoenlicheSaetze.Count;
-            aw.label32.Text = "" + stats.komplexeSaetze.Count;
-            aw.label33.Text = "" + stats.langeSaetze.Count;
-            aw.label34.Text = "" + stats.phrasenSaetze.Count;
-            aw.label35.Text = "" + stats.fuellwortSaetze.Count;
-            aw.label36.Text = "" + stats.nominalSaetze.Count;
+            lbl7.Text = "" + stats.BasicStatistics.paragraphCount;
+            lbl9.Text = "" + stats.BasicStatistics.wordCount;
+            lbl8.Text = "" + stats.BasicStatistics.sentenceCount;
+            lbl10.Text = "" + stats.BasicStatistics.uniqueWordCount;
         }
 
-        void fillGridViews(Auswertung aw1)
+        void fillGridViews(System.Windows.Forms.DataGridView dataGridView2)
         {
-            foreach (KeyValuePair<string, int> kv in model.FrequentTags.OrderByDescending(s => s.Value).Take(100))
-            {
-                System.Windows.Forms.DataGridViewRow row = new System.Windows.Forms.DataGridViewRow();
-                row.CreateCells(aw1.dataGridView1);
-                row.Cells[0].Value = kv.Key;
-                row.Cells[1].Value = kv.Value;
-                aw1.dataGridView1.Rows.Add(row);
-            }
-
+            float wcount = model.Words.Count;
             foreach (KeyValuePair<string, int> v in model.UniqueWords.OrderByDescending(s => s.Value).Take(100))
             {
                 System.Windows.Forms.DataGridViewRow row = new System.Windows.Forms.DataGridViewRow();
-                row.CreateCells(aw1.dataGridView2);
+                row.CreateCells(dataGridView2);
                 row.Cells[0].Value = v.Key;
                 row.Cells[1].Value = v.Value;
-                aw1.dataGridView2.Rows.Add(row);
+                row.Cells[2].Value = Math.Round(100.0f*v.Value / wcount,2)+"%";
+                dataGridView2.Rows.Add(row);
             }
         }
 
@@ -143,41 +138,41 @@ namespace DerPapierjosef
             List<SentenceTreeNode> passivNodes = new List<SentenceTreeNode>();
             foreach (Word.Range satz in statistics.fuellwortSaetze)
             {
-                SentenceTreeNode tn = new SentenceTreeNode();
-                tn.Text = satz.Text.Substring(0, Math.Min(20, satz.Text.Length)) + "...";
-                tn.begin = satz.Start;
-                tn.end = satz.End;
-                fuellNodes.Add(tn);
+                fuellNodes = addNodeToList(satz, fuellNodes, true);
             }
             foreach (Word.Range satz in statistics.langeSaetze)
             {
-                SentenceTreeNode tn = new SentenceTreeNode();
-                tn.Text = satz.Text.Substring(0, Math.Min(20, satz.Text.Length)) + "...";
-                tn.begin = satz.Start;
-                tn.end = satz.End;
-                langNodes.Add(tn);
+                langNodes=addNodeToList(satz, langNodes, true);
             }
             foreach (Word.Range satz in statistics.komplexeSaetze)
             {
-                SentenceTreeNode tn = new SentenceTreeNode();
-                tn.Text = satz.Text.Substring(0, Math.Min(20, satz.Text.Length)) + "...";
-                tn.begin = satz.Start;
-                tn.end = satz.End;
-                komplexNodes.Add(tn);
+                komplexNodes = addNodeToList(satz, komplexNodes, false);
             }
             foreach (Word.Range satz in statistics.passivSaetze)
             {
-                SentenceTreeNode tn = new SentenceTreeNode();
-                tn.Text = satz.Text.Substring(0, Math.Min(20, satz.Text.Length)) + "...";
-                tn.begin = satz.Start;
-                tn.end = satz.End;
-                passivNodes.Add(tn);
+                passivNodes=addNodeToList(satz, passivNodes, true);
             }
-            int sc = statistics.BasicStatistics.sentenceCount;
-            return new SentenceTreeNode[] { new SentenceTreeNode("Füllwörter-Sätze ("+fuellNodes.Count+" von "+sc+")", fuellNodes.ToArray()),
-                                            new SentenceTreeNode("Lange Sätze ("+langNodes.Count+" von "+sc+")", langNodes.ToArray()),
-                                            new SentenceTreeNode("Komplexe Sätze ("+komplexNodes.Count+" von "+sc+")", komplexNodes.ToArray()),
-                                            new SentenceTreeNode("Passiv-Sätze ("+passivNodes.Count+" von "+sc+")", passivNodes.ToArray())};
+            return buildParentNodes(statistics.BasicStatistics.sentenceCount,fuellNodes,langNodes,komplexNodes,passivNodes);
+        }
+
+        private SentenceTreeNode[] buildParentNodes(int sc,List<SentenceTreeNode> fuellNodes,
+                                                           List<SentenceTreeNode> langNodes,
+                                                           List<SentenceTreeNode> komplexNodes,
+                                                           List<SentenceTreeNode> passivNodes)
+        {
+            string end=" von " + sc + ")";
+            SentenceTreeNode fuellnode = new SentenceTreeNode("Füllwörter-Sätze (" + fuellNodes.Count + end, fuellNodes.ToArray()),
+                             langnode = new SentenceTreeNode("Lange Sätze (" + langNodes.Count + end, langNodes.ToArray()),
+                             komplexnode = new SentenceTreeNode("Komplexe Sätze (" + komplexNodes.Count + end, komplexNodes.ToArray()),
+                             passivnode = new SentenceTreeNode("Passiv-Sätze (" + passivNodes.Count + end, passivNodes.ToArray());
+            fuellnode.BackColor = ((float)fuellNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)fuellNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
+            langnode.BackColor = ((float)langNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)langNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
+            komplexnode.BackColor = ((float)komplexNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)komplexNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
+            passivnode.BackColor = ((float)passivNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)passivNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
+            return new SentenceTreeNode[] { fuellnode,
+                                            langnode,
+                                            komplexnode,
+                                            passivnode};
         }
 
         private void loadNLP()
@@ -190,9 +185,21 @@ namespace DerPapierjosef
             }
         }
 
+        private List<SentenceTreeNode> addNodeToList(Word.Range satz, List<SentenceTreeNode> nodeList,bool showNoWords)
+        {
+            const int SENTENCE_LENGTH = 35;
+            SentenceTreeNode tn = new SentenceTreeNode();
+            tn.Text = satz.Text.Substring(0, Math.Min(SENTENCE_LENGTH, satz.Text.Length)) + "..."
+                +(showNoWords?(" ("+satz.Words.Count+")"):"");
+            tn.begin = satz.Start;
+            tn.end = satz.End;
+            nodeList.Add(tn);
+            return nodeList;
+        }
+
         private void updateModel()
         {
-            model = new JosefModel(Globals.ThisAddIn.Application.ActiveDocument, nlp);
+            model = new JosefModel(Globals.ThisAddIn.Application.ActiveDocument, nlp,c);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Word = Microsoft.Office.Interop.Word;
+using System.ComponentModel;
 using Verstaendlichkeit=DerPapierjosef.JosefSentence.Verstaendlichkeit;
 
 namespace DerPapierjosef
@@ -70,13 +71,14 @@ namespace DerPapierjosef
 
         
 
-        public JosefModel(Microsoft.Office.Interop.Word.Document doc,OpenNLP nlp)
+        public JosefModel(Microsoft.Office.Interop.Word.Document doc,OpenNLP nlp,BackgroundWorker bw)
         {
             document = doc;
             foreach (Word.Field f in document.Fields)
             {
                 f.Unlink();
             }
+            bw.ReportProgress(20);
             paragraphs=new JosefParagraph[document.Paragraphs.Count];
 
             words = new List<string>();
@@ -84,6 +86,7 @@ namespace DerPapierjosef
             {
                 paragraphs[i] = new JosefParagraph(document.Paragraphs[i + 1],doc, nlp);
                 words.AddRange(paragraphs[i].Words);
+                bw.ReportProgress((int)(80.0f*i / document.Paragraphs.Count)  + 20);
             }
         }
 

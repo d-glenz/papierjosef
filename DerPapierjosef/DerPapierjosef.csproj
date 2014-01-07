@@ -186,22 +186,22 @@
       <DependentUpon>Auswertung.cs</DependentUpon>
     </Compile>
     <Compile Include="DaleChall.cs" />
-    <Compile Include="JosefModel.cs" />
+    <Compile Include="Model\JosefModel.cs" />
     <Compile Include="View\JosefPane.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="View\JosefPane.Designer.cs">
       <DependentUpon>JosefPane.cs</DependentUpon>
     </Compile>
-    <Compile Include="JosefParagraph.cs" />
+    <Compile Include="Model\JosefParagraph.cs" />
     <Compile Include="View\JosefRibbon.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="View\JosefRibbon.Designer.cs">
       <DependentUpon>JosefRibbon.cs</DependentUpon>
     </Compile>
-    <Compile Include="JosefSentence.cs" />
-    <Compile Include="JosefStatistics.cs" />
+    <Compile Include="Model\JosefSentence.cs" />
+    <Compile Include="Model\JosefStatistics.cs" />
     <Compile Include="OpenNLP.cs" />
     <Compile Include="View\ProgressForm.cs">
       <SubType>Form</SubType>
