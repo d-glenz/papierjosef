@@ -27,43 +27,53 @@ namespace DerPapierjosef
 
         private void Josef_Click(object sender, RibbonControlEventArgs e)
         {
-            Action exec = loadNLP,
-                    exec2 = updateModel;
             pf = new ProgressForm();
+            BackgroundWorker b = onlpLoader();
+            c = textAnalyzer();
+            pf.Show();
+            pf.progressBar1.MarqueeAnimationSpeed = 30;
+            b.RunWorkerAsync();
+        }
+
+        private BackgroundWorker onlpLoader()
+        {
             BackgroundWorker b = new BackgroundWorker();
-            c = new BackgroundWorker();
+
             b.DoWork += (object s, DoWorkEventArgs ea) =>
             {
+                Action exec = loadNLP;
                 exec.Invoke();
             };
-            c.DoWork += (object s2, DoWorkEventArgs ea2) =>
-            {
-                exec2.Invoke();
-            };
-            c.WorkerReportsProgress = true;
-            c.ProgressChanged += c_ProgressChanged;
             b.RunWorkerCompleted += (object s, RunWorkerCompletedEventArgs ea) =>
             {
-                pf.label1.Text="Text wird ausgewertet... (Schritt 2 von 2)";
-                pf.progressBar1.MarqueeAnimationSpeed = 0;
+                pf.label1.Text = "Text wird ausgewertet... (Schritt 2 von 2)";
                 pf.progressBar1.Style = ProgressBarStyle.Continuous;
                 c.RunWorkerAsync();
             };
-            c.RunWorkerCompleted += (object s, RunWorkerCompletedEventArgs ea) =>
+            return b;
+        }
+
+        private BackgroundWorker textAnalyzer()
+        {
+            BackgroundWorker cc=new BackgroundWorker();
+            cc.WorkerReportsProgress = true;
+            cc.ProgressChanged += (object sender1, ProgressChangedEventArgs e1) =>
+            {
+                pf.progressBar1.Value = e1.ProgressPercentage;
+            };
+            cc.DoWork += (object s2, DoWorkEventArgs ea2) =>
+            {
+                Action exec = updateModel;
+                exec.Invoke();
+            };
+            cc.RunWorkerCompleted += (object s, RunWorkerCompletedEventArgs ea) =>
             {
                 if (pf != null && pf.Visible) pf.Close();
                 showAuswertungen();
             };
-            pf.Show();
-            pf.progressBar1.MarqueeAnimationSpeed = 30;
-            b.RunWorkerAsync();
-            
+            return cc;
         }
 
-        void c_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            pf.progressBar1.Value = e.ProgressPercentage;
-        }
 
         private void showAuswertungen()
         {
@@ -71,10 +81,14 @@ namespace DerPapierjosef
             Globals.ThisAddIn.TaskPane.Visible = true;
             Globals.ThisAddIn.TaskPane.Width = 344;
             JosefStatistics stats = new JosefStatistics(model);
-            setLabels(stats,MyJosefPane.label7,MyJosefPane.label8,MyJosefPane.label9,MyJosefPane.label10);
+            setLabels(stats, MyJosefPane.label7, 
+                             MyJosefPane.label8, 
+                             MyJosefPane.label9, 
+                             MyJosefPane.label10, 
+                             MyJosefPane.label13);
             
             fillHistogram(MyJosefPane.chart1);
-            fillGridViews(MyJosefPane.dataGridView2);
+            fillGridViews(MyJosefPane.dataGridView1,MyJosefPane.dataGridView2);
             MyJosefPane.setNodes(buildTreeNodes(stats));
             MyJosefPane.treeView1.NodeMouseClick +=
             (object sender, System.Windows.Forms.TreeNodeMouseClickEventArgs e) =>
@@ -94,15 +108,16 @@ namespace DerPapierjosef
             }
         }
 
-        void setLabels(JosefStatistics stats, Label lbl7, Label lbl8, Label lbl9, Label lbl10)
+        void setLabels(JosefStatistics stats, Label lbl7, Label lbl8, Label lbl9, Label lbl10, Label lbl13)
         {
             lbl7.Text = "" + stats.BasicStatistics.paragraphCount;
             lbl9.Text = "" + stats.BasicStatistics.wordCount;
             lbl8.Text = "" + stats.BasicStatistics.sentenceCount;
             lbl10.Text = "" + stats.BasicStatistics.uniqueWordCount;
+            lbl13.Text = "" + stats.BasicStatistics.dickesSteiwer+"%";
         }
 
-        void fillGridViews(System.Windows.Forms.DataGridView dataGridView2)
+        void fillGridViews(DataGridView dataGridView1,DataGridView dataGridView2)
         {
             float wcount = model.Words.Count;
             foreach (KeyValuePair<string, int> v in model.UniqueWords.OrderByDescending(s => s.Value).Take(100))
@@ -113,6 +128,14 @@ namespace DerPapierjosef
                 row.Cells[1].Value = v.Value;
                 row.Cells[2].Value = Math.Round(100.0f*v.Value / wcount,2)+"%";
                 dataGridView2.Rows.Add(row);
+            }
+            foreach (KeyValuePair<string, int> v in model.ngrams(2).OrderByDescending(ng => ng.Value))
+            {
+                System.Windows.Forms.DataGridViewRow row = new System.Windows.Forms.DataGridViewRow();
+                row.CreateCells(dataGridView1);
+                row.Cells[0].Value = v.Key;
+                row.Cells[1].Value = v.Value;
+                dataGridView1.Rows.Add(row);
             }
         }
 
@@ -136,6 +159,8 @@ namespace DerPapierjosef
             List<SentenceTreeNode> langNodes = new List<SentenceTreeNode>();
             List<SentenceTreeNode> komplexNodes = new List<SentenceTreeNode>();
             List<SentenceTreeNode> passivNodes = new List<SentenceTreeNode>();
+            List<SentenceTreeNode> unpersNodes = new List<SentenceTreeNode>();
+            List<SentenceTreeNode> phrasenNodes = new List<SentenceTreeNode>();
             foreach (Word.Range satz in statistics.fuellwortSaetze)
             {
                 fuellNodes = addNodeToList(satz, fuellNodes, true);
@@ -152,27 +177,44 @@ namespace DerPapierjosef
             {
                 passivNodes=addNodeToList(satz, passivNodes, true);
             }
-            return buildParentNodes(statistics.BasicStatistics.sentenceCount,fuellNodes,langNodes,komplexNodes,passivNodes);
+            foreach (Word.Range satz in statistics.unpersoenlicheSaetze)
+            {
+                unpersNodes = addNodeToList(satz, unpersNodes, true);
+            }
+            foreach (Word.Range satz in statistics.phrasenSaetze)
+            {
+                phrasenNodes = addNodeToList(satz, phrasenNodes, true);
+            }
+            return buildParentNodes(statistics.BasicStatistics.sentenceCount,fuellNodes,
+                                    langNodes, komplexNodes, passivNodes, unpersNodes, phrasenNodes);
         }
 
         private SentenceTreeNode[] buildParentNodes(int sc,List<SentenceTreeNode> fuellNodes,
                                                            List<SentenceTreeNode> langNodes,
                                                            List<SentenceTreeNode> komplexNodes,
-                                                           List<SentenceTreeNode> passivNodes)
+                                                           List<SentenceTreeNode> passivNodes,
+                                                           List<SentenceTreeNode> unpersNodes,
+                                                           List<SentenceTreeNode> phrasenNodes)
         {
             string end=" von " + sc + ")";
             SentenceTreeNode fuellnode = new SentenceTreeNode("Füllwörter-Sätze (" + fuellNodes.Count + end, fuellNodes.ToArray()),
                              langnode = new SentenceTreeNode("Lange Sätze (" + langNodes.Count + end, langNodes.ToArray()),
                              komplexnode = new SentenceTreeNode("Komplexe Sätze (" + komplexNodes.Count + end, komplexNodes.ToArray()),
-                             passivnode = new SentenceTreeNode("Passiv-Sätze (" + passivNodes.Count + end, passivNodes.ToArray());
+                             passivnode = new SentenceTreeNode("Passiv-Sätze (" + passivNodes.Count + end, passivNodes.ToArray()),
+                             unpersnode = new SentenceTreeNode("Unpersönliche Sätze (" + unpersNodes.Count + end, unpersNodes.ToArray()),
+                             phrasennode = new SentenceTreeNode("Phrasen-Sätze (" + phrasenNodes.Count + end, phrasenNodes.ToArray()); ;
             fuellnode.BackColor = ((float)fuellNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)fuellNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
             langnode.BackColor = ((float)langNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)langNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
             komplexnode.BackColor = ((float)komplexNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)komplexNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
             passivnode.BackColor = ((float)passivNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)passivNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
+            unpersnode.BackColor = ((float)unpersNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)unpersNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
+            phrasennode.BackColor = ((float)phrasenNodes.Count / sc < 0.3f) ? System.Drawing.Color.PaleGreen : (((float)phrasenNodes.Count / sc < 0.7f) ? System.Drawing.Color.NavajoWhite : System.Drawing.Color.Tomato);
             return new SentenceTreeNode[] { fuellnode,
                                             langnode,
                                             komplexnode,
-                                            passivnode};
+                                            passivnode,
+                                            unpersnode,
+                                            phrasennode};
         }
 
         private void loadNLP()

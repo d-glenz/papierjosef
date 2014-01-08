@@ -39,6 +39,15 @@ namespace DerPapierjosef
             }
         }
 
+        public List<string> CleansedWords
+        {
+            get
+            {
+                string[] filter = { ",", ".", "(", ")", "-", ").", "" };
+                return words.Select(w => w.Trim()).Where(w => !filter.Contains(w)).ToList();
+            }
+        }
+
         public List<JosefSentence> Sentences
         {
             get{
@@ -57,7 +66,9 @@ namespace DerPapierjosef
         public Dictionary<string, int> UniqueWords
         {
             get{
-                return words.GroupBy(x => x).ToDictionary(x => x.Key, x => x.Count());
+                string[] filter = {",",".","(",")","-",").","" };
+                return words.Select(w => w.Trim()).Where(w => !filter.Contains(w))
+                    .GroupBy(x => x).ToDictionary(x => x.Key, x => x.Count());
             }
         }
 
@@ -137,6 +148,24 @@ namespace DerPapierjosef
                 }
             }
             return 0;
+        }
+
+        public Dictionary<string, int> ngrams(int n)
+        {
+            if(n==1)
+                return words.GroupBy(x => x).ToDictionary(x => x.Key, x => x.Count());
+            else
+            {
+                Dictionary<string,int> myDict=new Dictionary<string,int>();
+                for(int i=0;i<words.Count-1;i++){
+                    string bigram=string.Join(" ", words.GetRange(i, 2));
+                    if (myDict.ContainsKey(bigram))
+                        myDict[bigram] = myDict[bigram] + 1;
+                    else
+                        myDict[bigram] = 1;
+                }
+                return myDict;
+            }
         }
     }
 }

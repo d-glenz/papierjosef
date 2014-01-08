@@ -42,7 +42,10 @@ namespace DerPapierjosef
             ruleLogics.Add(new Tuple<factDetector, List<Word.Range>>((w, t) => StopWords.fuellwortAnzahl(w) > 0, fuellwortSaetze));
             ruleLogics.Add(new Tuple<factDetector, List<Word.Range>>((w, t) => StopWords.phrasenAnzahl(w) > 0, phrasenSaetze));
             ruleLogics.Add(new Tuple<factDetector, List<Word.Range>>((w, t) => t.Contains("PIS"), unpersoenlicheSaetze));
-            ruleLogics.Add(new Tuple<factDetector, List<Word.Range>>((w, t) => t.Contains("VAFIN") && t.Contains("VVPP"), passivSaetze));
+            ruleLogics.Add(new Tuple<factDetector, List<Word.Range>>((w, t) => idxOf(t,"VAFIN")!=-1 && 
+                                                                     (w[idxOf(t,"VAFIN")] ==  "wird" || w[idxOf(t,"VAFIN")].StartsWith("wurd") 
+                                                                     || w[idxOf(t,"VAFIN")].StartsWith("werd") || w[idxOf(t,"VAFIN")].StartsWith("würd"))
+                                                                     && t.Contains("VVPP"), passivSaetze));
             ruleLogics.Add(new Tuple<factDetector, List<Word.Range>>((w, t) => (t.Contains("VAFIN") && t.Contains("VVPP")) ||
                                                                                (t.Contains("VAFIN") && t.Contains("VAPP")) ||
                                                                                t.Contains("VMPP") || t.Contains("VVFIN"), 
@@ -68,6 +71,11 @@ namespace DerPapierjosef
                         (int)(model.Percentile(model.Sentences.Select(s => s.Words.Count).ToArray(), 0.9f)),
                         model.Paragraphs.Count(), DickesSteiwer(model.Letters,model.Words,model.Sentences.Count,
                         model.UniqueWords.Count), FloskelMean(model.Sentences), NominalMean(model.Sentences));
+        }
+
+        private int idxOf(List<string> tags, string tag)
+        {
+            return tags.FindIndex(t => t == tag);
         }
 
         public float DickesSteiwer(char[] Letters, List<string> Words, int sentences, int uniquewords)
