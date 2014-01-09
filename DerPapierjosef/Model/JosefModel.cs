@@ -89,7 +89,7 @@ namespace DerPapierjosef
             {
                 f.Unlink();
             }
-            bw.ReportProgress(20);
+            bw.ReportProgress(10);
             paragraphs=new JosefParagraph[document.Paragraphs.Count];
 
             words = new List<string>();
@@ -97,7 +97,7 @@ namespace DerPapierjosef
             {
                 paragraphs[i] = new JosefParagraph(document.Paragraphs[i + 1],doc, nlp);
                 words.AddRange(paragraphs[i].Words);
-                bw.ReportProgress((int)(80.0f*i / document.Paragraphs.Count)  + 20);
+                bw.ReportProgress(i+(10/document.Paragraphs.Count));
             }
         }
 

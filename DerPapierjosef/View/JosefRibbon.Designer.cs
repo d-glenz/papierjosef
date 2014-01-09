@@ -34,19 +34,15 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.tab1 = this.Factory.CreateRibbonTab();
+            Microsoft.Office.Tools.Ribbon.RibbonDialogLauncher ribbonDialogLauncherImpl1 = this.Factory.CreateRibbonDialogLauncher();
             this.tab2 = this.Factory.CreateRibbonTab();
             this.group1 = this.Factory.CreateRibbonGroup();
+            this.separator1 = this.Factory.CreateRibbonSeparator();
             this.Josef = this.Factory.CreateRibbonButton();
-            this.tab1.SuspendLayout();
+            this.button2 = this.Factory.CreateRibbonButton();
+            this.button1 = this.Factory.CreateRibbonButton();
             this.tab2.SuspendLayout();
             this.group1.SuspendLayout();
-            // 
-            // tab1
-            // 
-            this.tab1.ControlId.ControlIdType = Microsoft.Office.Tools.Ribbon.RibbonControlIdType.Office;
-            this.tab1.Label = "TabAddIns";
-            this.tab1.Name = "tab1";
             // 
             // tab2
             // 
@@ -56,9 +52,18 @@
             // 
             // group1
             // 
+            this.group1.DialogLauncher = ribbonDialogLauncherImpl1;
             this.group1.Items.Add(this.Josef);
+            this.group1.Items.Add(this.separator1);
+            this.group1.Items.Add(this.button2);
+            this.group1.Items.Add(this.button1);
             this.group1.Label = "Analyse";
             this.group1.Name = "group1";
+            this.group1.DialogLauncherClick +=group1_DialogLauncherClick;
+            // 
+            // separator1
+            // 
+            this.separator1.Name = "separator1";
             // 
             // Josef
             // 
@@ -69,15 +74,25 @@
             this.Josef.ShowImage = true;
             this.Josef.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.Josef_Click);
             // 
+            // button2
+            // 
+            this.button2.Image = global::DerPapierjosef.Properties.Resources.info;
+            this.button2.Label = "Über Papierjosef";
+            this.button2.Name = "button2";
+            this.button2.ShowImage = true;
+            this.button2.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.button2_Click);
+            // 
+            // button1
+            // 
+            this.button1.Label = "";
+            this.button1.Name = "button1";
+            // 
             // JosefRibbon
             // 
             this.Name = "JosefRibbon";
             this.RibbonType = "Microsoft.Word.Document";
-            this.Tabs.Add(this.tab1);
             this.Tabs.Add(this.tab2);
             this.Load += new Microsoft.Office.Tools.Ribbon.RibbonUIEventHandler(this.JosefRibbon_Load);
-            this.tab1.ResumeLayout(false);
-            this.tab1.PerformLayout();
             this.tab2.ResumeLayout(false);
             this.tab2.PerformLayout();
             this.group1.ResumeLayout(false);
@@ -85,12 +100,15 @@
 
         }
 
+
         #endregion
 
-        internal Microsoft.Office.Tools.Ribbon.RibbonTab tab1;
         private Microsoft.Office.Tools.Ribbon.RibbonTab tab2;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup group1;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton Josef;
+        internal Microsoft.Office.Tools.Ribbon.RibbonSeparator separator1;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton button2;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton button1;
     }
 
     partial class ThisRibbonCollection

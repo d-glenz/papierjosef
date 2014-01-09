@@ -8,6 +8,8 @@ using System.ComponentModel;
 using Stats = DerPapierjosef.JosefStatistics.Stats;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Windows.Forms;
+using DerPapierjosef.View;
+
 
 
 
@@ -19,10 +21,13 @@ namespace DerPapierjosef
         OpenNLP nlp;
         BackgroundWorker c;
         ProgressForm pf;
+        JosefStatistics stats;
+        OptionsDialog dlg;
+        TimerClass tc;
 
         private void JosefRibbon_Load(object sender, RibbonUIEventArgs e)
         {
-
+            
         }
 
         private void Josef_Click(object sender, RibbonControlEventArgs e)
@@ -30,9 +35,18 @@ namespace DerPapierjosef
             pf = new ProgressForm();
             BackgroundWorker b = onlpLoader();
             c = textAnalyzer();
+            pf.label5.Text = "";
             pf.Show();
+            tc = new TimerClass();
+            tc.StartClock(ref pf.label3);
             pf.progressBar1.MarqueeAnimationSpeed = 30;
             b.RunWorkerAsync();
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            fillGridViewFreq(Globals.ThisAddIn.MyJosefPane.dataGridView2,
+                          Globals.ThisAddIn.MyJosefPane.checkBox1.Checked);
         }
 
         private BackgroundWorker onlpLoader()
@@ -46,7 +60,8 @@ namespace DerPapierjosef
             };
             b.RunWorkerCompleted += (object s, RunWorkerCompletedEventArgs ea) =>
             {
-                pf.label1.Text = "Text wird ausgewertet... (Schritt 2 von 2)";
+                pf.label1.Text = "Text wird ausgewertet...";
+                pf.label7.Text = "2 von 2";
                 pf.progressBar1.Style = ProgressBarStyle.Continuous;
                 c.RunWorkerAsync();
             };
@@ -59,7 +74,8 @@ namespace DerPapierjosef
             cc.WorkerReportsProgress = true;
             cc.ProgressChanged += (object sender1, ProgressChangedEventArgs e1) =>
             {
-                pf.progressBar1.Value = e1.ProgressPercentage;
+                pf.progressBar1.Value = (int)100*e1.ProgressPercentage / Globals.ThisAddIn.Application.ActiveDocument.Paragraphs.Count;
+                pf.label5.Text = e1.ProgressPercentage + " von " + Globals.ThisAddIn.Application.ActiveDocument.Paragraphs.Count;
             };
             cc.DoWork += (object s2, DoWorkEventArgs ea2) =>
             {
@@ -68,6 +84,7 @@ namespace DerPapierjosef
             };
             cc.RunWorkerCompleted += (object s, RunWorkerCompletedEventArgs ea) =>
             {
+                tc.StopClock();
                 if (pf != null && pf.Visible) pf.Close();
                 showAuswertungen();
             };
@@ -78,9 +95,13 @@ namespace DerPapierjosef
         private void showAuswertungen()
         {
             JosefPane MyJosefPane = Globals.ThisAddIn.MyJosefPane;
-            Globals.ThisAddIn.TaskPane.Visible = true;
+            MyJosefPane.checkBox1.CheckedChanged
+                += new System.EventHandler(this.checkBox1_CheckedChanged);
+            MyJosefPane.ignorierenToolStripMenuItem.Click 
+                += new System.EventHandler(this.ignorierenToolStripMenuItem_Click);
             Globals.ThisAddIn.TaskPane.Width = 344;
-            JosefStatistics stats = new JosefStatistics(model);
+            Globals.ThisAddIn.TaskPane.Visible = true;
+            stats = new JosefStatistics(model);
             setLabels(stats, MyJosefPane.label7, 
                              MyJosefPane.label8, 
                              MyJosefPane.label9, 
@@ -88,14 +109,63 @@ namespace DerPapierjosef
                              MyJosefPane.label13);
             
             fillHistogram(MyJosefPane.chart1);
-            fillGridViews(MyJosefPane.dataGridView1,MyJosefPane.dataGridView2);
+            fillGridViewNgram(MyJosefPane.dataGridView1);
+            fillGridViewFreq(MyJosefPane.dataGridView2,
+                MyJosefPane.checkBox1.Checked);
             MyJosefPane.setNodes(buildTreeNodes(stats));
             MyJosefPane.treeView1.NodeMouseClick +=
             (object sender, System.Windows.Forms.TreeNodeMouseClickEventArgs e) =>
             {
                 SentenceTreeNode stn = (SentenceTreeNode)e.Node;
                 model.Document.Range(stn.begin, stn.end).Select();
+                
             };
+        }
+
+        
+        private void ignorierenToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ContextMenuStrip cms = (ContextMenuStrip)((ToolStripMenuItem)sender).Owner;
+            TreeView treeView = (TreeView)cms.SourceControl;
+            SentenceTreeNode stn =
+                (SentenceTreeNode)treeView.GetNodeAt(treeView.PointToClient(cms.Location));
+            if (stn.Parent != null)
+            {
+                switch (stn.Parent.Text.Substring(0,2))
+                {
+                    case "Fü":
+                        stats.fuellwortSaetze
+                            .Remove(stats.fuellwortSaetze
+                            .Where(s => s.Start == stn.begin && s.End == stn.end).First());
+                        break;
+                    case "La":
+                        stats.langeSaetze
+                            .Remove(stats.langeSaetze
+                            .Where(s => s.Start == stn.begin && s.End == stn.end).First());
+                        break;
+                    case "Ko":
+                        stats.komplexeSaetze
+                            .Remove(stats.komplexeSaetze
+                            .Where(s => s.Start == stn.begin && s.End == stn.end).First());
+                        break;
+                    case "Pa":
+                        stats.passivSaetze
+                            .Remove(stats.passivSaetze
+                            .Where(s => s.Start == stn.begin && s.End == stn.end).First());
+                        break;
+                    case "Un":
+                        stats.unpersoenlicheSaetze
+                            .Remove(stats.unpersoenlicheSaetze
+                            .Where(s => s.Start == stn.begin && s.End == stn.end).First());
+                        break;
+                    case "Ph":
+                        stats.phrasenSaetze
+                            .Remove(stats.phrasenSaetze
+                            .Where(s => s.Start == stn.begin && s.End == stn.end).First());
+                        break;
+                }
+                Globals.ThisAddIn.MyJosefPane.setNodes(buildTreeNodes(stats));
+            }
         }
                 
         void fillHistogram(Chart chart1)
@@ -117,18 +187,33 @@ namespace DerPapierjosef
             lbl13.Text = "" + stats.BasicStatistics.dickesSteiwer+"%";
         }
 
-        void fillGridViews(DataGridView dataGridView1,DataGridView dataGridView2)
+        void fillGridViewFreq(DataGridView dataGridView2, bool filter)
         {
             float wcount = model.Words.Count;
+            dataGridView2.Rows.Clear();
             foreach (KeyValuePair<string, int> v in model.UniqueWords.OrderByDescending(s => s.Value).Take(100))
             {
                 System.Windows.Forms.DataGridViewRow row = new System.Windows.Forms.DataGridViewRow();
                 row.CreateCells(dataGridView2);
                 row.Cells[0].Value = v.Key;
                 row.Cells[1].Value = v.Value;
-                row.Cells[2].Value = Math.Round(100.0f*v.Value / wcount,2)+"%";
-                dataGridView2.Rows.Add(row);
+                row.Cells[2].Value = Math.Round(100.0f * v.Value / wcount, 2) + "%";
+                if (filter)
+                {
+                    if (!StopWords.stopWords.Contains(v.Key.ToLower()))
+                        dataGridView2.Rows.Add(row);
+                }
+                else
+                {
+                    dataGridView2.Rows.Add(row);
+                }
             }
+        }
+
+        void fillGridViewNgram(DataGridView dataGridView1)
+        {
+            
+            dataGridView1.Rows.Clear();
             foreach (KeyValuePair<string, int> v in model.ngrams(2).OrderByDescending(ng => ng.Value))
             {
                 System.Windows.Forms.DataGridViewRow row = new System.Windows.Forms.DataGridViewRow();
@@ -242,6 +327,25 @@ namespace DerPapierjosef
         private void updateModel()
         {
             model = new JosefModel(Globals.ThisAddIn.Application.ActiveDocument, nlp,c);
+        }
+
+        void group1_DialogLauncherClick(object sender, Microsoft.Office.Tools.Ribbon.RibbonControlEventArgs e)
+        {
+            dlg = new OptionsDialog();
+            DialogResult result = dlg.ShowDialog();
+            dlg.FormClosed += dlg_FormClosed;
+        }
+
+
+        void dlg_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            //TODO: Do stuff here!!
+        }
+
+        private void button2_Click(object sender, RibbonControlEventArgs e)
+        {
+            DerPapierjosef.View.AboutBox about = new DerPapierjosef.View.AboutBox();
+            about.ShowDialog();
         }
     }
 }

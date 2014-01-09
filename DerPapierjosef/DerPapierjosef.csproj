@@ -27,11 +27,24 @@
     <NoStandardLibraries>false</NoStandardLibraries>
     <RootNamespace>DerPapierjosef</RootNamespace>
     <AssemblyName>DerPapierjosef</AssemblyName>
-    <LoadBehavior>3</LoadBehavior>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <DefineConstants>VSTO40</DefineConstants>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <BootstrapperComponentsLocation>HomeSite</BootstrapperComponentsLocation>
+    <PublishUrl>veröffentlichen\</PublishUrl>
+    <InstallUrl />
+    <TargetCulture>de</TargetCulture>
+    <ApplicationVersion>1.0.0.0</ApplicationVersion>
+    <AutoIncrementApplicationRevision>true</AutoIncrementApplicationRevision>
+    <UpdateEnabled>true</UpdateEnabled>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>days</UpdateIntervalUnits>
+    <IsWebBootstrapper>False</IsWebBootstrapper>
+    <ProductName>DerPapierjosef</ProductName>
+    <PublisherName />
+    <SupportUrl />
+    <FriendlyName>DerPapierjosef</FriendlyName>
+    <OfficeApplicationDescription />
+    <LoadBehavior>3</LoadBehavior>
   </PropertyGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
@@ -39,9 +52,19 @@
       <ProductName>Microsoft .NET Framework 4.5 %28x86 and x64%29</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.VSTORuntime.4.0">
       <Visible>False</Visible>
-      <ProductName>Microsoft Visual Studio 2010 Tools for Office Runtime %28x86 and x64%29</ProductName>
+      <ProductName>Microsoft Visual Studio 2010-Tools für Office-Laufzeit %28x86 und x64%29</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
     <BootstrapperPackage Include="Microsoft.Windows.Installer.4.5">
@@ -179,14 +202,26 @@
     can be found.
   -->
   <ItemGroup>
-    <Compile Include="View\Auswertung.cs">
+    <Compile Include="Model\DaleChall.cs" />
+    <Compile Include="Model\JosefModel.cs" />
+    <Compile Include="View\AboutBox1.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="View\Auswertung.Designer.cs">
-      <DependentUpon>Auswertung.cs</DependentUpon>
+    <Compile Include="View\AboutBox1.Designer.cs">
+      <DependentUpon>AboutBox1.cs</DependentUpon>
     </Compile>
-    <Compile Include="DaleChall.cs" />
-    <Compile Include="Model\JosefModel.cs" />
+    <Compile Include="View\GeneralOptionsPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="View\OptionsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="View\OptionsDialog.Designer.cs">
+      <DependentUpon>OptionsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="View\PropertyPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="View\JosefPane.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -202,7 +237,7 @@
     </Compile>
     <Compile Include="Model\JosefSentence.cs" />
     <Compile Include="Model\JosefStatistics.cs" />
-    <Compile Include="OpenNLP.cs" />
+    <Compile Include="Model\OpenNLP.cs" />
     <Compile Include="View\ProgressForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -212,8 +247,15 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
-    <EmbeddedResource Include="View\Auswertung.resx">
-      <DependentUpon>Auswertung.cs</DependentUpon>
+    <Compile Include="View\TimerClass.cs" />
+    <EmbeddedResource Include="View\AboutBox1.resx">
+      <DependentUpon>AboutBox1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="View\GeneralOptionsPage.resx">
+      <DependentUpon>GeneralOptionsPage.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="View\OptionsDialog.resx">
+      <DependentUpon>OptionsDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="View\JosefPane.resx">
       <DependentUpon>JosefPane.cs</DependentUpon>
@@ -234,6 +276,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
+    <EmbeddedResource Include="View\PropertyPage.resx">
+      <DependentUpon>PropertyPage.cs</DependentUpon>
+    </EmbeddedResource>
     <None Include="DerPapierjosef_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -243,7 +288,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="StopWords.cs" />
+    <Compile Include="Model\StopWords.cs" />
     <Compile Include="ThisAddIn.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -261,6 +306,12 @@
   <ItemGroup>
     <Content Include="Resources\check.bmp" />
     <Content Include="Resources\err.bmp" />
+    <None Include="Resources\settings.bmp" />
+    <None Include="Resources\settings.png" />
+    <None Include="Resources\settings1.png" />
+    <None Include="Resources\general.png" />
+    <None Include="Resources\info.png" />
+    <None Include="Resources\paperjoe.png" />
     <Content Include="Resources\warn.bmp" />
   </ItemGroup>
   <PropertyGroup>

@@ -28,7 +28,7 @@ namespace DerPapierjosef
         {
             get
             {
-                return sentences;
+                return sentences.Where(s => !s.ignore).ToArray();
             }
         }
 

@@ -17,6 +17,7 @@ namespace DerPapierjosef
         List<int> subOrdinatePos;
         public string[] tags;
         public string[] chunks;
+        public bool ignore;
 
         public enum Verstaendlichkeit
         {
@@ -139,6 +140,7 @@ namespace DerPapierjosef
 
         public JosefSentence(Word.Range s, Word.Document d, OpenNLP nlp)
         {
+            ignore = false;
             startPos = s.Start;
             endPos   = s.End;
             document = d;
